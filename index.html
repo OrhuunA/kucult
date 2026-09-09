@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Görselleri tarayıcıda toplu küçülten ve sıkıştıran tek dosyalık araç. Dosyalar cihazdan çıkmaz.">
+<title>Küçült</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#f2f3f0;
+    --surface:#ffffff;
+    --surface-2:#fafbf8;
+    --ink:#191d1b;
+    --muted:#5e6863;
+    --line:#dde0da;
+    --line-strong:#c6ccc3;
+    --accent:#0f6b5c;
+    --accent-ink:#0b4b41;
+    --accent-soft:#dcece7;
+    --warn:#9a4a20;
+    --warn-soft:#f6e7dd;
+    --shadow:0 1px 2px rgba(25,29,27,.06), 0 8px 24px -18px rgba(25,29,27,.35);
+    --radius:10px;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --display:"Bricolage Grotesque","IBM Plex Sans",-apple-system,Segoe UI,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#111412;
+      --surface:#191e1b;
+      --surface-2:#1f2521;
+      --ink:#edefea;
+      --muted:#98a29c;
+      --line:#2a312d;
+      --line-strong:#3b443f;
+      --accent:#4fbfa8;
+      --accent-ink:#8fd9c9;
+      --accent-soft:#16302b;
+      --warn:#e09a6d;
+      --warn-soft:#33231a;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -20px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#111412;
+    --surface:#191e1b;
+    --surface-2:#1f2521;
+    --ink:#edefea;
+    --muted:#98a29c;
+    --line:#2a312d;
+    --line-strong:#3b443f;
+    --accent:#4fbfa8;
+    --accent-ink:#8fd9c9;
+    --accent-soft:#16302b;
+    --warn:#e09a6d;
+    --warn-soft:#33231a;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -20px rgba(0,0,0,.8);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 64px;display:flex;flex-direction:column;gap:22px}
+
+  /* masthead */
+  .masthead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .brand h1{
+    font-family:var(--display);font-weight:800;font-size:34px;line-height:1;margin:0 0 6px;
+    letter-spacing:-.02em;text-wrap:balance;
+  }
+  .brand p{margin:0;color:var(--muted);max-width:52ch}
+  .chip{
+    display:inline-flex;align-items:center;gap:7px;
+    background:var(--accent-soft);color:var(--accent-ink);
+    border-radius:999px;padding:6px 13px;font-size:12.5px;font-weight:600;
+    letter-spacing:.01em;white-space:nowrap;
+  }
+  .chip .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+
+  /* deck */
+  .deck{display:grid;grid-template-columns:1fr 296px;gap:14px;align-items:stretch}
+  @media (max-width:760px){.deck{grid-template-columns:1fr}}
+
+  .drop{
+    position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:8px;text-align:center;min-height:190px;padding:26px;cursor:pointer;
+    background:var(--surface-2);border:1.5px dashed var(--line-strong);border-radius:var(--radius);
+    transition:border-color .15s,background .15s;
+  }
+  .drop:hover,.drop:focus-within{border-color:var(--accent);background:var(--surface)}
+  .drop.over{border-color:var(--accent);background:var(--accent-soft);border-style:solid}
+  .drop strong{font-family:var(--display);font-weight:600;font-size:19px}
+  .drop span{color:var(--muted);font-size:13.5px}
+  .drop .formats{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.03em}
+  .drop input{position:absolute;opacity:0;width:1px;height:1px}
+  .arrow{width:30px;height:30px;color:var(--accent)}
+
+  .settings{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;display:flex;flex-direction:column;gap:15px;box-shadow:var(--shadow);
+  }
+  .settings h2{
+    font-family:var(--sans);font-size:11px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.09em;color:var(--muted);margin:0;
+  }
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field > label{font-size:13px;font-weight:500;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .field .val{font-family:var(--mono);font-size:12.5px;color:var(--accent-ink);font-variant-numeric:tabular-nums}
+  select{
+    font:inherit;font-size:14px;color:var(--ink);background:var(--surface-2);
+    border:1px solid var(--line-strong);border-radius:7px;padding:7px 9px;width:100%;
+  }
+  .segment{display:flex;gap:0;border:1px solid var(--line-strong);border-radius:7px;overflow:hidden}
+  .segment button{
+    flex:1;font:inherit;font-size:13px;font-weight:500;padding:7px 4px;cursor:pointer;
+    background:var(--surface-2);color:var(--muted);border:0;border-right:1px solid var(--line-strong);
+  }
+  .segment button:last-child{border-right:0}
+  .segment button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+  input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+  .hint{font-size:12px;color:var(--muted);margin:0}
+
+  /* summary */
+  .summary{
+    display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center;
+    background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:var(--radius);padding:15px 18px;box-shadow:var(--shadow);
+  }
+  @media (max-width:640px){.summary{grid-template-columns:1fr;gap:12px}}
+  .saved-num{font-family:var(--display);font-weight:800;font-size:38px;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+  .saved-lbl{font-size:12px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+  .bar{height:7px;border-radius:4px;background:var(--line);overflow:hidden}
+  .bar > i{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .35s ease}
+  .totals{font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:7px;font-variant-numeric:tabular-nums}
+  .totals b{color:var(--ink);font-weight:500}
+
+  button.primary{
+    font:inherit;font-weight:600;font-size:14px;color:#fff;background:var(--accent);
+    border:0;border-radius:8px;padding:10px 17px;cursor:pointer;white-space:nowrap;
+  }
+  button.primary:hover{background:var(--accent-ink)}
+  button.primary:disabled{opacity:.5;cursor:default}
+  :root[data-theme="dark"] button.primary{color:#08201c}
+  button.ghost{
+    font:inherit;font-size:13px;font-weight:500;color:var(--muted);background:transparent;
+    border:1px solid var(--line-strong);border-radius:7px;padding:6px 12px;cursor:pointer;
+  }
+  button.ghost:hover{color:var(--ink);border-color:var(--ink)}
+
+  /* file list */
+  .list-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  .list-head h2{font-family:var(--display);font-weight:600;font-size:17px;margin:0}
+  ul.files{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  li.row{
+    display:grid;grid-template-columns:26px 52px minmax(0,1fr) auto auto;gap:14px;align-items:center;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;
+    transition:opacity .15s,outline-color .15s;
+  }
+  li.row.dragging{opacity:.4}
+  li.row.drag-over{outline:2px dashed var(--accent);outline-offset:-2px}
+  .drag-handle{
+    cursor:grab;color:var(--muted);background:transparent;border:0;padding:4px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;touch-action:none;
+  }
+  .drag-handle:hover{color:var(--ink);background:var(--surface-2)}
+  .drag-handle:active{cursor:grabbing}
+  .drag-handle svg{width:15px;height:15px;pointer-events:none}
+  @media (max-width:700px){
+    li.row{grid-template-columns:22px 52px minmax(0,1fr) auto;grid-template-areas:"h t n p" "h t f f";row-gap:9px}
+    li.row .drag-handle{grid-area:h}
+    li.row .thumb{grid-area:t}
+    li.row .meta{grid-area:n}
+    li.row .pill{grid-area:p}
+    li.row .figs{grid-area:f;justify-self:start}
+  }
+  .thumb{width:52px;height:52px;border-radius:7px;object-fit:cover;background:var(--surface-2);border:1px solid var(--line)}
+  .meta{min-width:0}
+  .fname{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fsub{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.01em;font-variant-numeric:tabular-nums}
+  .figs{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted);display:flex;align-items:center;gap:7px;flex-wrap:wrap;row-gap:6px}
+  .figs > span{white-space:nowrap}
+  .figs .after{color:var(--ink);font-weight:500}
+  .pill{
+    font-family:var(--mono);font-size:12.5px;font-weight:500;padding:4px 9px;border-radius:999px;
+    background:var(--accent-soft);color:var(--accent-ink);white-space:nowrap;font-variant-numeric:tabular-nums;
+  }
+  .pill.bad{background:var(--warn-soft);color:var(--warn)}
+  .pill.wait{background:var(--line);color:var(--muted)}
+  .tag{
+    font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--muted);border:1px solid var(--line-strong);border-radius:4px;padding:1px 5px;margin-left:7px;vertical-align:1px;
+  }
+  .icon-btn{
+    font:inherit;background:transparent;border:1px solid var(--line-strong);border-radius:7px;
+    color:var(--ink);padding:6px 11px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;
+  }
+  .icon-btn:hover{border-color:var(--accent);color:var(--accent-ink)}
+  .icon-btn.danger:hover{border-color:var(--warn);color:var(--warn)}
+
+  .note{color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px;margin:0}
+  .note code{font-family:var(--mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+
+  .toast{
+    position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+    background:var(--ink);color:var(--ground);font-size:13.5px;font-weight:500;
+    padding:10px 16px;border-radius:8px;box-shadow:var(--shadow);z-index:9;max-width:88vw;text-align:center;
+  }
+  .toast[hidden]{display:none!important}
+
+  /* önce/sonra karşılaştırma */
+  .compare-overlay{
+    position:fixed;inset:0;background:rgba(10,14,12,.55);backdrop-filter:blur(2px);
+    display:flex;align-items:center;justify-content:center;padding:20px;z-index:20;
+  }
+  .compare-overlay[hidden]{display:none!important}
+  .compare-modal{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+    max-width:820px;width:100%;max-height:92vh;overflow:auto;padding:18px;
+    display:flex;flex-direction:column;gap:13px;
+  }
+  .compare-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .compare-head h3{font-family:var(--display);font-weight:600;font-size:16.5px;margin:0 0 3px;word-break:break-all}
+  .compare-sub{margin:0;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .compare-frame{
+    position:relative;width:100%;border-radius:8px;overflow:hidden;background:var(--surface-2);
+    border:1px solid var(--line);user-select:none;touch-action:pan-y;cursor:ew-resize;
+  }
+  .compare-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;background:var(--surface-2)}
+  .compare-after-wrap{position:absolute;inset:0;overflow:hidden;clip-path:inset(0 50% 0 0)}
+  .compare-tag{
+    position:absolute;top:9px;font-family:var(--mono);font-size:11px;font-weight:500;
+    background:rgba(20,24,22,.62);color:#fff;padding:3px 8px;border-radius:5px;letter-spacing:.02em;pointer-events:none;
+  }
+  .compare-tag-before{left:9px}
+  .compare-tag-after{right:9px}
+  .compare-handle{position:absolute;top:0;bottom:0;left:50%;width:0;pointer-events:none}
+  .compare-handle::before{content:"";position:absolute;top:0;bottom:0;left:-1px;width:2px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+  .compare-grip{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;
+    background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;
+    color:#191d1b;font-size:15px;line-height:1;
+  }
+  .compare-range{width:100%}
+  .compare-close{align-self:flex-start}
+
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand">
+      <h1>Küçült</h1>
+      <p>Görselleri toplu küçült ve sıkıştır. Tüm işlem tarayıcıda yapılır — hiçbir dosya sunucuya gönderilmez.</p>
+    </div>
+    <span class="chip"><span class="dot"></span>Çevrimdışı çalışır</span>
+  </header>
+
+  <section class="deck">
+    <label class="drop" id="drop">
+      <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 16V4M12 4 7 9M12 4l5 5"></path><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"></path>
+      </svg>
+      <strong>Görselleri buraya bırak</strong>
+      <span>ya da tıklayıp bilgisayarından seç</span>
+      <span class="formats">JPG · PNG · WEBP · AVIF · GIF (ilk kare)</span>
+      <input type="file" id="picker" accept="image/*" multiple>
+    </label>
+
+    <aside class="settings">
+      <h2>Ayarlar</h2>
+      <div class="field">
+        <label id="fmt-label">Çıktı biçimi</label>
+        <div class="segment" role="group" aria-labelledby="fmt-label">
+          <button type="button" data-fmt="image/webp" aria-pressed="true">WebP</button>
+          <button type="button" data-fmt="image/jpeg" aria-pressed="false">JPEG</button>
+          <button type="button" data-fmt="image/png" aria-pressed="false">PNG</button>
+        </div>
+      </div>
+      <div class="field" id="quality-field">
+        <label for="quality">Kalite <span class="val" id="quality-val">0,80</span></label>
+        <input type="range" id="quality" min="0.3" max="1" step="0.05" value="0.8">
+        <p class="hint" id="quality-hint">0,80 çoğu fotoğraf için gözle fark edilmeyecek eşik.</p>
+      </div>
+      <div class="field">
+        <label for="maxw">En fazla genişlik</label>
+        <select id="maxw">
+          <option value="0">Orijinal boyut</option>
+          <option value="2560">2560 px</option>
+          <option value="1920" selected>1920 px — ekran</option>
+          <option value="1280">1280 px — web</option>
+          <option value="800">800 px — küçük görsel</option>
+        </select>
+      </div>
+    </aside>
+  </section>
+
+  <section class="summary" id="summary" hidden>
+    <div>
+      <div class="saved-num" id="saved-pct">%0</div>
+      <div class="saved-lbl">kazanç</div>
+    </div>
+    <div>
+      <div class="bar"><i id="saved-bar" style="width:0%"></i></div>
+      <div class="totals" id="totals"></div>
+    </div>
+    <button class="primary" id="zip-btn">Tümünü ZIP indir</button>
+  </section>
+
+  <section>
+    <div class="list-head">
+      <h2 id="list-title">Örnek görseller</h2>
+      <button class="ghost" id="clear-btn" hidden>Listeyi temizle</button>
+    </div>
+    <ul class="files" id="files"></ul>
+  </section>
+
+  <p class="note">
+    Küçültme <code>canvas.toBlob()</code> ile yapılır: görsel çözülür, en fazla genişliğe göre ölçeklenir ve seçtiğin biçimde yeniden kodlanır.
+    EXIF dönme bilgisi uygulanır, konum gibi diğer EXIF verileri çıktıda kalmaz. Şeffaflık gereken görsellerde WebP veya PNG seç — JPEG şeffaf alanları beyaza çevirir.
+  </p>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<div class="compare-overlay" id="compare-overlay" hidden>
+  <div class="compare-modal" role="dialog" aria-modal="true" aria-labelledby="compare-title">
+    <div class="compare-head">
+      <div>
+        <h3 id="compare-title">—</h3>
+        <p class="compare-sub" id="compare-sub"></p>
+      </div>
+      <button class="icon-btn compare-close" id="compare-close" type="button">Kapat</button>
+    </div>
+    <div class="compare-frame" id="compare-frame">
+      <img class="compare-img compare-before" id="compare-before-img" alt="Orijinal görsel">
+      <div class="compare-after-wrap" id="compare-after-wrap">
+        <img class="compare-img compare-after" id="compare-after-img" alt="Küçültülmüş görsel">
+      </div>
+      <span class="compare-tag compare-tag-before">Orijinal</span>
+      <span class="compare-tag compare-tag-after">Küçültülmüş</span>
+      <div class="compare-handle" id="compare-handle">
+        <span class="compare-grip" aria-hidden="true">⇔</span>
+      </div>
+    </div>
+    <input type="range" class="compare-range" id="compare-range" min="0" max="100" value="50" aria-label="Önce/sonra kaydırıcısı">
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var settings = { format:"image/webp", quality:0.80, maxW:1920 };
+  var items = [];
+  var seq = 0;
+  var downloads = null;
+  var dragSrcItem = null;
+  var compareItem = null;
+
+  if (window.claude && typeof window.claude.use === "function") {
+    try { window.claude.use("downloads").then(function(d){ downloads = d; }, function(){}); } catch(e){}
+  }
+
+  var $ = function(id){ return document.getElementById(id); };
+  var filesEl = $("files"), summaryEl = $("summary"), toastEl = $("toast");
+  var toastTimer = null;
+
+  function toast(msg){
+    toastEl.textContent = msg; toastEl.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function(){ toastEl.hidden = true; }, 3200);
+  }
+  function tr(n, d){ return n.toFixed(d).replace(".", ","); }
+  function fmtSize(b){
+    if (b < 1024) return b + " B";
+    if (b < 1048576) return tr(b/1024, 0) + " KB";
+    return tr(b/1048576, 2) + " MB";
+  }
+  function extOf(type){ return type === "image/png" ? "png" : type === "image/jpeg" ? "jpg" : "webp"; }
+  function baseName(name){ return name.replace(/\.[^.]+$/, "").replace(/[\\/:*?"<>|]+/g, "-"); }
+  function outName(item){ return baseName(item.name) + "-kucuk." + extOf(settings.format); }
+
+  /* ---------- işleme ---------- */
+
+  function decode(blob){
+    if (window.createImageBitmap) {
+      return createImageBitmap(blob, { imageOrientation:"from-image" }).catch(function(){ return decodeViaImg(blob); });
+    }
+    return decodeViaImg(blob);
+  }
+  function decodeViaImg(blob){
+    return new Promise(function(res, rej){
+      var url = URL.createObjectURL(blob), img = new Image();
+      img.onload = function(){ URL.revokeObjectURL(url); res(img); };
+      img.onerror = function(){ URL.revokeObjectURL(url); rej(new Error("cozulemedi")); };
+      img.src = url;
+    });
+  }
+  function toBlob(canvas, type, q){
+    return new Promise(function(res, rej){
+      canvas.toBlob(function(b){ b ? res(b) : rej(new Error("kodlanamadi")); }, type, q);
+    });
+  }
+
+  function process(item){
+    item.status = "working";
+    render();
+    return decode(item.blob).then(function(src){
+      var w = src.width, h = src.height;
+      item.srcW = w; item.srcH = h;
+      var scale = (settings.maxW && w > settings.maxW) ? settings.maxW / w : 1;
+      var ow = Math.max(1, Math.round(w * scale));
+      var oh = Math.max(1, Math.round(h * scale));
+      var canvas = document.createElement("canvas");
+      canvas.width = ow; canvas.height = oh;
+      var ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      if (settings.format === "image/jpeg") { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, ow, oh); }
+      ctx.drawImage(src, 0, 0, ow, oh);
+      if (src.close) src.close();
+      var q = settings.format === "image/png" ? undefined : settings.quality;
+      return toBlob(canvas, settings.format, q).then(function(out){
+        if (item.outUrl) { try { URL.revokeObjectURL(item.outUrl); } catch(e){} }
+        item.out = out; item.outW = ow; item.outH = oh;
+        item.outUrl = URL.createObjectURL(out);
+        item.status = "done";
+        render();
+      });
+    }).catch(function(){
+      item.status = "error"; item.out = null;
+      render();
+    });
+  }
+
+  function runAll(){
+    closeCompare();
+    var queue = items.slice(), active = 0;
+    function next(){
+      while (active < 2 && queue.length) {
+        var it = queue.shift(); active++;
+        process(it).then(function(){ active--; next(); });
+      }
+    }
+    next();
+  }
+
+  /* ---------- görünüm ---------- */
+
+  function render(){
+    filesEl.textContent = "";
+    var totalIn = 0, totalOut = 0, ready = 0, hasSample = false;
+
+    items.forEach(function(item){
+      if (item.isSample) hasSample = true;
+      var li = document.createElement("li");
+      li.className = "row";
+
+      var handle = document.createElement("button");
+      handle.type = "button";
+      handle.className = "drag-handle";
+      handle.setAttribute("aria-label", "Sürükleyerek sırala");
+      handle.setAttribute("draggable", "true");
+      handle.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">'
+        + '<circle cx="5" cy="3" r="1.3"></circle><circle cx="11" cy="3" r="1.3"></circle>'
+        + '<circle cx="5" cy="8" r="1.3"></circle><circle cx="11" cy="8" r="1.3"></circle>'
+        + '<circle cx="5" cy="13" r="1.3"></circle><circle cx="11" cy="13" r="1.3"></circle></svg>';
+      handle.addEventListener("dragstart", function(e){
+        dragSrcItem = item;
+        li.classList.add("dragging");
+        try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", String(item.id)); } catch(err){}
+      });
+      handle.addEventListener("dragend", function(){
+        dragSrcItem = null;
+        Array.prototype.forEach.call(filesEl.querySelectorAll(".row"), function(r){
+          r.classList.remove("dragging", "drag-over");
+        });
+      });
+      li.appendChild(handle);
+
+      li.addEventListener("dragover", function(e){
+        if (!dragSrcItem || dragSrcItem === item) return;
+        e.preventDefault();
+        try { e.dataTransfer.dropEffect = "move"; } catch(err){}
+        li.classList.add("drag-over");
+      });
+      li.addEventListener("dragleave", function(){ li.classList.remove("drag-over"); });
+      li.addEventListener("drop", function(e){
+        e.preventDefault();
+        li.classList.remove("drag-over");
+        var src = dragSrcItem;
+        dragSrcItem = null;
+        if (!src || src === item) return;
+        var from = items.indexOf(src), to = items.indexOf(item);
+        if (from === -1 || to === -1) return;
+        items.splice(from, 1);
+        items.splice(to, 0, src);
+        render();
+      });
+
+      var img = document.createElement("img");
+      img.className = "thumb"; img.alt = ""; img.src = item.thumb;
+      li.appendChild(img);
+
+      var meta = document.createElement("div");
+      meta.className = "meta";
+      var nm = document.createElement("div");
+      nm.className = "fname";
+      nm.textContent = item.name;
+      if (item.isSample) { var t = document.createElement("span"); t.className = "tag"; t.textContent = "örnek"; nm.appendChild(t); }
+      var sub = document.createElement("div");
+      sub.className = "fsub";
+      if (item.status === "done") {
+        sub.textContent = item.srcW + "×" + item.srcH + " → " + item.outW + "×" + item.outH + " px · " +
+          extOf(settings.format).toUpperCase() + (settings.format === "image/png" ? "" : " · k " + tr(settings.quality, 2));
+      } else if (item.status === "error") {
+        sub.textContent = "Bu dosya çözülemedi — desteklenmeyen ya da bozuk bir görsel.";
+      } else {
+        sub.textContent = "işleniyor…";
+      }
+      meta.appendChild(nm); meta.appendChild(sub);
+      li.appendChild(meta);
+
+      var pill = document.createElement("span");
+      if (item.status === "done") {
+        totalIn += item.size; totalOut += item.out.size; ready++;
+        var diff = 1 - item.out.size / item.size;
+        if (diff >= 0) { pill.className = "pill"; pill.textContent = "−%" + tr(diff * 100, 0); }
+        else { pill.className = "pill bad"; pill.textContent = "+%" + tr(-diff * 100, 0); }
+      } else if (item.status === "error") {
+        pill.className = "pill bad"; pill.textContent = "hata";
+      } else {
+        pill.className = "pill wait"; pill.textContent = "…";
+      }
+      pill.classList.add("pill");
+      li.appendChild(pill);
+
+      var right = document.createElement("div");
+      right.className = "figs";
+      if (item.status === "done") {
+        var before = document.createElement("span");
+        before.textContent = fmtSize(item.size);
+        var arrow = document.createElement("span");
+        arrow.textContent = "→";
+        var after = document.createElement("span");
+        after.className = "after";
+        after.textContent = fmtSize(item.out.size);
+        var cmp = document.createElement("button");
+        cmp.className = "icon-btn";
+        cmp.type = "button";
+        cmp.textContent = "Karşılaştır";
+        cmp.addEventListener("click", function(){ openCompare(item); });
+        var dl = document.createElement("button");
+        dl.className = "icon-btn";
+        dl.type = "button";
+        dl.textContent = "İndir";
+        dl.addEventListener("click", function(){ saveFile(outName(item), item.out); });
+        right.appendChild(before); right.appendChild(arrow); right.appendChild(after);
+        right.appendChild(cmp); right.appendChild(dl);
+      } else {
+        var only = document.createElement("span");
+        only.textContent = fmtSize(item.size);
+        right.appendChild(only);
+      }
+      var del = document.createElement("button");
+      del.className = "icon-btn danger";
+      del.type = "button";
+      del.textContent = "Sil";
+      del.setAttribute("aria-label", "Bu görseli listeden sil");
+      del.addEventListener("click", function(){ removeItem(item); });
+      right.appendChild(del);
+      li.appendChild(right);
+      filesEl.appendChild(li);
+    });
+
+    $("list-title").textContent = items.length === 0 ? "Henüz görsel yok"
+      : hasSample ? "Örnek görseller" : items.length + " görsel";
+    $("clear-btn").hidden = items.length === 0 || hasSample;
+
+    if (ready > 0) {
+      summaryEl.hidden = false;
+      var pct = totalIn ? Math.max(0, (1 - totalOut / totalIn) * 100) : 0;
+      $("saved-pct").textContent = "%" + tr(pct, 0);
+      $("saved-bar").style.width = Math.min(100, pct) + "%";
+      $("totals").innerHTML = "";
+      var line = document.createElement("span");
+      line.textContent = ready + " görsel · " + fmtSize(totalIn) + " → ";
+      var strong = document.createElement("b");
+      strong.textContent = fmtSize(totalOut);
+      var tail = document.createElement("span");
+      tail.textContent = "  (" + fmtSize(Math.max(0, totalIn - totalOut)) + " tasarruf)";
+      $("totals").appendChild(line); $("totals").appendChild(strong); $("totals").appendChild(tail);
+      $("zip-btn").disabled = false;
+    } else {
+      summaryEl.hidden = true;
+    }
+  }
+
+  function removeItem(item){
+    var idx = items.indexOf(item);
+    if (idx === -1) return;
+    if (compareItem === item) closeCompare();
+    try { URL.revokeObjectURL(item.thumb); } catch(e){}
+    if (item.outUrl) { try { URL.revokeObjectURL(item.outUrl); } catch(e){} }
+    items.splice(idx, 1);
+    render();
+  }
+
+  /* ---------- önce/sonra karşılaştırma ---------- */
+
+  var compareFrame = $("compare-frame"), compareOverlay = $("compare-overlay"),
+      compareAfterWrap = $("compare-after-wrap"), compareHandle = $("compare-handle"),
+      compareRange = $("compare-range");
+  var compareActive = false, compareDragging = false;
+
+  function setComparePct(pct){
+    pct = Math.max(0, Math.min(100, pct));
+    compareAfterWrap.style.clipPath = "inset(0 " + (100 - pct) + "% 0 0)";
+    compareHandle.style.left = pct + "%";
+    compareRange.value = pct;
+  }
+
+  function openCompare(item){
+    if (item.status !== "done" || !item.outUrl) return;
+    compareItem = item;
+    $("compare-title").textContent = item.name;
+    $("compare-sub").textContent = item.srcW + "×" + item.srcH + " (" + fmtSize(item.size) + ")  →  " +
+      item.outW + "×" + item.outH + " (" + fmtSize(item.out.size) + ")";
+    $("compare-before-img").src = item.thumb;
+    $("compare-after-img").src = item.outUrl;
+    compareFrame.style.aspectRatio = item.srcW + " / " + item.srcH;
+    setComparePct(50);
+    compareOverlay.hidden = false;
+    compareActive = true;
+    document.body.style.overflow = "hidden";
+  }
+  function closeCompare(){
+    if (!compareActive) return;
+    compareOverlay.hidden = true;
+    compareActive = false;
+    compareItem = null;
+    document.body.style.overflow = "";
+  }
+
+  $("compare-close").addEventListener("click", closeCompare);
+  compareOverlay.addEventListener("click", function(e){ if (e.target === compareOverlay) closeCompare(); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape" && compareActive) closeCompare(); });
+  compareRange.addEventListener("input", function(e){ setComparePct(parseFloat(e.target.value)); });
+
+  function pctFromPointer(e){
+    var rect = compareFrame.getBoundingClientRect();
+    var x = e.clientX - rect.left;
+    return (x / rect.width) * 100;
+  }
+  compareFrame.addEventListener("pointerdown", function(e){
+    compareDragging = true;
+    try { compareFrame.setPointerCapture(e.pointerId); } catch(err){}
+    setComparePct(pctFromPointer(e));
+  });
+  compareFrame.addEventListener("pointermove", function(e){
+    if (!compareDragging) return;
+    setComparePct(pctFromPointer(e));
+  });
+  ["pointerup","pointercancel","pointerleave"].forEach(function(ev){
+    compareFrame.addEventListener(ev, function(){ compareDragging = false; });
+  });
+
+  /* ---------- kaydetme ---------- */
+
+  function saveFile(filename, blob){
+    if (downloads) {
+      downloads.save({ filename: filename, data: blob }).then(function(){}, function(err){
+        if (err && err.code === "declined") return;
+        fallbackSave(filename, blob);
+      });
+      return;
+    }
+    fallbackSave(filename, blob);
+  }
+  function fallbackSave(filename, blob){
+    try {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+    } catch(e){ toast("Dosya kaydedilemedi."); }
+  }
+
+  $("zip-btn").addEventListener("click", function(){
+    var done = items.filter(function(i){ return i.status === "done"; });
+    if (!done.length) return;
+    if (typeof JSZip === "undefined") { toast("ZIP kitaplığı yüklenemedi — dosyaları tek tek indirebilirsin."); return; }
+    var btn = this;
+    btn.disabled = true; btn.textContent = "ZIP hazırlanıyor…";
+    var zip = new JSZip();
+    var used = {};
+    done.forEach(function(item){
+      var n = outName(item);
+      if (used[n]) { n = baseName(item.name) + "-" + (used[n] + 1) + "-kucuk." + extOf(settings.format); }
+      used[outName(item)] = (used[outName(item)] || 0) + 1;
+      zip.file(n, item.out);
+    });
+    zip.generateAsync({ type:"blob" }).then(function(blob){
+      saveFile("kucult-" + done.length + "-gorsel.zip", blob);
+      btn.disabled = false; btn.textContent = "Tümünü ZIP indir";
+    }, function(){
+      toast("ZIP oluşturulamadı.");
+      btn.disabled = false; btn.textContent = "Tümünü ZIP indir";
+    });
+  });
+
+  /* ---------- girdi ---------- */
+
+  function addFiles(fileList){
+    var incoming = Array.prototype.slice.call(fileList).filter(function(f){ return /^image\//.test(f.type); });
+    if (!incoming.length) { toast("Görsel dosyası bulunamadı."); return; }
+    items = items.filter(function(i){ return !i.isSample; });
+    incoming.forEach(function(f){
+      items.push({
+        id: ++seq, name: f.name || ("gorsel-" + seq), blob: f, size: f.size,
+        thumb: URL.createObjectURL(f), status: "working", out: null, outUrl: null, isSample: false
+      });
+    });
+    render();
+    runAll();
+  }
+
+  var drop = $("drop");
+  $("picker").addEventListener("change", function(e){ addFiles(e.target.files); e.target.value = ""; });
+  ["dragenter","dragover"].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add("over"); });
+  });
+  ["dragleave","drop"].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove("over"); });
+  });
+  drop.addEventListener("drop", function(e){ if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
+  window.addEventListener("dragover", function(e){ e.preventDefault(); });
+  window.addEventListener("drop", function(e){ e.preventDefault(); });
+
+  $("clear-btn").addEventListener("click", function(){
+    closeCompare();
+    items.forEach(function(i){
+      try { URL.revokeObjectURL(i.thumb); } catch(e){}
+      if (i.outUrl) { try { URL.revokeObjectURL(i.outUrl); } catch(e){} }
+    });
+    items = []; render();
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".segment button"), function(btn){
+    btn.addEventListener("click", function(){
+      Array.prototype.forEach.call(document.querySelectorAll(".segment button"), function(b){
+        b.setAttribute("aria-pressed", String(b === btn));
+      });
+      settings.format = btn.getAttribute("data-fmt");
+      var png = settings.format === "image/png";
+      $("quality").disabled = png;
+      $("quality-field").style.opacity = png ? ".5" : "1";
+      $("quality-hint").textContent = png
+        ? "PNG kayıpsızdır; kalite ayarı uygulanmaz, kazanç yalnızca ölçeklemeden gelir."
+        : "0,80 çoğu fotoğraf için gözle fark edilmeyecek eşik.";
+      runAll();
+    });
+  });
+
+  var qTimer = null;
+  $("quality").addEventListener("input", function(e){
+    settings.quality = parseFloat(e.target.value);
+    $("quality-val").textContent = tr(settings.quality, 2);
+    clearTimeout(qTimer); qTimer = setTimeout(runAll, 250);
+  });
+  $("maxw").addEventListener("change", function(e){
+    settings.maxW = parseInt(e.target.value, 10) || 0;
+    runAll();
+  });
+
+  /* ---------- açılışta örnekler ---------- */
+
+  function sampleBlob(kind){
+    var c = document.createElement("canvas");
+    c.width = kind === "portre" ? 1400 : 2000;
+    c.height = kind === "portre" ? 1900 : 1250;
+    var ctx = c.getContext("2d"), w = c.width, h = c.height, i;
+
+    if (kind === "portre") {
+      var g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, "#2b4a63"); g.addColorStop(.55, "#5b7f8c"); g.addColorStop(1, "#d8c9a8");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "rgba(255,242,214,.9)";
+      ctx.beginPath(); ctx.arc(w * .68, h * .22, 120, 0, 6.284); ctx.fill();
+      ctx.fillStyle = "rgba(20,32,40,.75)";
+      for (i = 0; i < 7; i++) {
+        var bx = w * (.05 + i * .14), bh = h * (.18 + ((i * 37) % 11) / 30);
+        ctx.fillRect(bx, h - bh, w * .11, bh);
+      }
+    } else {
+      var g2 = ctx.createLinearGradient(0, 0, w, h);
+      g2.addColorStop(0, "#123a35"); g2.addColorStop(.5, "#3f7f63"); g2.addColorStop(1, "#e2b25c");
+      ctx.fillStyle = g2; ctx.fillRect(0, 0, w, h);
+      for (i = 0; i < 5; i++) {
+        ctx.fillStyle = "rgba(10,26,24," + (0.18 + i * 0.13) + ")";
+        ctx.beginPath();
+        ctx.moveTo(0, h * (0.55 + i * 0.09));
+        for (var x = 0; x <= w; x += 40) {
+          ctx.lineTo(x, h * (0.55 + i * 0.09) - Math.sin((x / w) * 3.1 + i) * (60 - i * 8));
+        }
+        ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
+      }
+    }
+    var d = ctx.getImageData(0, 0, w, h), px = d.data;
+    for (i = 0; i < px.length; i += 4) {
+      var n = (Math.random() - 0.5) * 26;
+      px[i] += n; px[i+1] += n; px[i+2] += n;
+    }
+    ctx.putImageData(d, 0, 0);
+    return new Promise(function(res){ c.toBlob(function(b){ res(b); }, "image/jpeg", 0.94); });
+  }
+
+  Promise.all([sampleBlob("manzara"), sampleBlob("portre")]).then(function(blobs){
+    if (items.length) return;
+    var names = ["ornek-kiyi-serit.jpg", "ornek-gun-batimi.jpg"];
+    blobs.forEach(function(b, i){
+      items.push({
+        id: ++seq, name: names[i], blob: b, size: b.size,
+        thumb: URL.createObjectURL(b), status: "working", out: null, outUrl: null, isSample: true
+      });
+    });
+    render();
+    runAll();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
